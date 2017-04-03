@@ -26,7 +26,7 @@ Let’s get started!
 
 **Sign up**
 
-If you’re based in New Zealand it couldn't be easier to get a test account. Just follow these steps to registered with Bambora:  [apply.bambora.co.nz](apply.bambora.co.nz)
+If you’re based in New Zealand it couldn't be easier to get a test account. Just follow these steps to registered with Bambora:  [apply.bambora.co.nz](http://apply.bambora.co.nz)
 After registering, you'll receive an email with two sets of credentials, one for the back office and the other for the API.
 
 **Take Payments**
