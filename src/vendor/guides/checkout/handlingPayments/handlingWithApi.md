@@ -1,44 +1,55 @@
 # Handling with API
-Transaction operations can be performed either using the Bambora Backoffice or by using the API. If you prefer manual operations of transactions, please read [Bambora Backoffice](/checkout/guides/handling-payments/bambora-backoffice). The following will describe handling transactions with API.
+Transaction operations can be performed either using the Bambora Checkout or by using the API. The following will describe handling transactions with API.
 
 ----
 
-This section describes how to handle transactions after an authorization has been made. Three different operations can be beformed with an authorized transaction.
+This section describes how to handle transactions using the Transaction-API. Please refer to the [API-reference](/checkout/apis/transaction) for the full specification. 
 
-1. Capture: Collect the money from the users bank account
-2. Credit: Refunded money back to the users bank account
-3. Delete: Cancel an approved transaction by deleting the authorization
+1. Purchase: Collect the money from the users bank account.
+2. Capture: Collect the money from the users bank account after an pre-authorization has been made. 
 
-Credit is only available when a capture has been performed. Likewise it is only possible to delete an authorization until it has been captured.
+## Submit a single transaction
 
-The three operations are done using the Transaction-API, please refer to the [API-reference](/checkout/apis/transaction) for the full specification. Common for all of these operations is that they require the transaction ID. It is return on both accept-url and callback-url as the parameter `txnid`.
+<p><span class="badge">POST</span><span class="fg-primary text-sm">https://demo.bambora.co.nz/interface/api/dts.asmx</span></p>
+
+The body below provides an overview of the available transaction elements that should be submitted in the XML request.
+
+```json
+{
+      <CustNumber>your_custnumber</CustNumber>
+      <CustRef>your_custref</CustRef>
+      <Amount>1000</Amount>
+      <TrnType>1</TrnType>
+      <AccountNumber>your_accountnumber</AccountNumber>
+      <CreditCard>
+                  <CardNumber>4242424242424242</CardNumber>
+                  <ExpM>02</ExpM>
+                  <ExpY>2019</ExpY>
+                  <CVN>123</CVN>
+                  <CardHolderName>CardHolderName</CardHolderName>
+       </CreditCard>
+       <Security>
+                  <UserName>your_api_username</UserName>
+                  <Password>your_api_password</Password>
+       </Security>
+}
+```
 
 ## Capture a transaction
 
-<p><span class="badge">POST</span><span class="fg-primary text-sm">https://transaction-v1.api-eu.bambora.com/transactions/{transactionid}/capture</span></p>
+<p><span class="badge">POST</span><span class="fg-primary text-sm">https://demo.bambora.co.nz/interface/api/dts.asmx</span></p>
 
-The body in the `POST`-request can be left empty, which would capture the full transaction amount. If you want to to a part capture enter the amount in the `body`.
-
-```json
-{
-  "amount": 9900
-}
-```
-
-## Credit a transaction
-
-<p><span class="badge">POST</span><span class="fg-primary text-sm">https://transaction-v1.api-eu.bambora.com/transactions/{transactionid}/credit</span></p>
-
-When performing a credit on a transaction with a capture amount, the body should contain the desired amount to refund.
+The body below provides an overview of the available transaction elements that should be submitted in the XML request.
 
 ```json
 {
-  "amount": 1900
+<Capture>
+         <Receipt>12345678</Receipt> 
+         <Amount>5500</Amount> 
+         <Security> 
+                 <UserName>your_api_username</UserName> 
+                 <Password>your_api_password</Password>
+         </Security> 
+</Capture>
 }
 ```
-
-## Delete a transaction
-
-<p><span class="badge">POST</span><span class="fg-primary text-sm">https://transaction-v1.api-eu.bambora.com/transactions/{transactionid}/delete</span></p>
-
-The body in this `POST`-request is not required an can be left empty. For advanced usage of this operation, please refer to the [API-reference](/checkout/apis/transaction).
