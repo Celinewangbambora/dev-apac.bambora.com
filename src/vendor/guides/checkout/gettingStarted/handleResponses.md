@@ -1,187 +1,215 @@
-# Handle Responses
+# Handle Responses 
 
-This section is part of the guide describing how to integration Bambora Checkout. To handle the responses please make sure that you have [created a payment](/checkout/guides/getting-started/create-payment).
+This section is part of the guide describing how to integrate Bambora Checkout. To handle the responses please make sure that you have [created a payment](/checkout/guides/getting-started/create-payment) using the Intergrated Checkout. 
 
 ----
 Handling responses from Bambora Checkout is important. It enables you to update your order dependent on the result of the payment and ensure a good user flow. 
 
-Bambora Checkout provides three kinds of responses you should handle to ensure a complete and robust user experience.
+Bambora Integrated Checkout provides two notification of the transaction upon the completion to you in two steps. 
 
-1. Accept-URL
-2. Cancel-URL
-3. Callback-URL
+1. ServerURL - The first step is a server to server post between IPP and your application providing a more robust and secure way of sending the transaction response data to you. 
+2. UserURL - The second step redirects the customer back to your website where they are notified of the transaction result. 
 
-Accept-URL and Cancel-URL are required fields when you create a Checkout Session. Callback-URL is optional, but it is highly recommended to implement handling of the callback.
+## Server-URL
 
-## Accept- and Cancel-URL
-The accept- and cancel-URL are similar in that sense, that they both involve the user who is performing the payment. Both are invoked as a `GET`-request as redirects the user like the following.
+Once the payment is completed Bambora will POST the first notification that including the transaction result data to the ServerURL as supplied in the Checkout session. The response data should be stored in your database and made accessible to your website. 
 
-When the payment is complete and the user click *Back to shop* the accept-URL is invoked. This means that the payment was a success and the receipt page could be shown to the user.
+This value must be Base 64 encoded when being submitted in the Checkout session. If you do not require data to be sent to the ServerURL, please leave this field empty. 
 
-If the user decides the click *Cancel* from the Checkout Window the cancel-URL is invoked. The cancel-URL does not indicate what went wrong, only that the payment has not been complete.
+## User-URL
 
-It is not recommeded do apply any order specific logic on either accept- or cancel-URL. It is not guaranteed that they will be invoked, since the user is present. There could various reason for the urls not to be invoked like computer shutdown, browser being closed, entering a new page, etc.
+Bambora redirects the user to the ‘UserURL’ as supplied in the Checkout session request and POSTs the SessionID and SST. The UserURL page can use these details to access the transaction results stored in your database from the first notification. 
 
-## Callback-URL
-The callback-URL will be invoked when the payment is complete and the transaction has been authorized. Unlike accept- and cancel-URL the callback-URL is system-to-system which means delivery is guaranteed.
-
-Once the payment is complete the callback-URL is invoked as a `GET`-request to notify your system that the payment has been approved. If for some reason the response of the callback is not a `200 OK`, the callback is added to a queue. Queued callbacks are retried one time each hour for 24 hours, after which they are marked as undeliverable.
-
-As the transaction is authorized the first callback (instant callback) is invoked. Please notice that a low timeout is attached to this callback, since the user is waiting for the payment to complete in the Checkout Window. If your system does not reply `200 OK` within 5 seconds the callback is terminated and added to the queue.
+Once your UserURL page receives the transaction result, it can display the transaction results to the user. 
 
 ## Configure the URLs
-The configuration of the different URLs is done when creating the Checkout Session. Assign an object of URLs as follow to the `url`-parameter.
+The configuration of the different URLs is done when creating the Checkout Session. Assign an object of URLs as follow to the `serverurl`-parameter and `userurl`-parameter. 
 
 ```json
 {
-  "accept": "https://example.org/accept",
-  "callbacks": [
-  {
-    "url": "https://example.org/callback"
-  }
-  ],
-  "cancel": "https://example.org/accept"
+  "ServerURL": "https://example.org/SessionResult"
+  "UserURL": "https://example.org/SessionResult"
 }
 ```
+The example provided only contains two parameters and the following presents all available parameters. 
 
-Notice that it is possible to assign an array of callback-URLs if you want to notify different systems about the transaction authorization. Please refer the the [API reference](/checkout/apis/checkout) for all available parameters.
-
-## Validate Accept- and Callback-URL
-When a payment is complete the accept-URL and callback-URLs are invoked. To enable you to update the order as a result of the payment, information is appended to the URLs. The same parameters are added to both the accept- and callback-URL, as illustrated through the following example:
-
-
-```html
-https://example.org/accept?amount=1200&orderid=136&hash=4ebab1b14fe6a473cd1413728eca332e
-https://example.org/callback?amount=1200&orderid=136&hash=4ebab1b14fe6a473cd1413728eca332e
-```
-
-In this example `amount` and `orderid` are added are parameters alongside with the `hash`-value. The `hash` enables you to validate the request and thereby protect you from fradulent request.
-
-The `hash` is an `md5`-hash and is calculated by hashing the following string:
-
-1. Extract all values from the request, except the `hash`
-2. Concatenate these values
-3. Append the MD5-key for your API-user.
-
-Using the mentioned parameters it would yield the following string:
-
-```html
-string = 1200136<md5key>
-calculated hash = 4ebab1b14fe6a473cd1413728eca332e
-```
-
-If the calculated `hash` is equal to the `hash` present in the request, the request is valid. Remember to enter your own MD5-key from the API-user. The MD5-key can be extract from the Bambora Backoffice:
-
-1. Log in to Bambora Backoffice
-2. Select `Settings` -> `Merchant numbers` from the sidebar.
-3. Click `Edit` for the particular merchant number
-4. Locate the MD5 key in the textbox labeled `MD5 key`
-
-The example provided only contains two parameters and the following presents all available parameters. It is advice to implement robust handling of the hash-validation since new parameters could be added by Bambora.
-
-### Available parameters
+### 1st Response POST to SeverURL 
 <table class="table"><thead>
 <tr>
-<th>Property name</th>
-<th>DataType</th>
+<th>Parameter</th>
+<th>Format</th>
 <th>Description</th>
 <th style="text-align: center">Always returned</th>
 </tr>
 </thead><tbody>
 <tr>
-<td><strong>txnid</strong></td>
-<td>Number</td>
-<td>Transaction ID</td>
+<td><strong>Result</strong></td>
+<td>Numberic</td>
+<td>0 = Declined;1 = Approve;2 = In progress;3 = Session Expired </td>
 <td style="text-align: center">Yes</td>
 </tr>
 <tr>
-<td><strong>orderid</strong></td>
-<td>String</td>
-<td>The merchants order ID</td>
+<td><strong>Reciept</strong></td>
+<td>Numberic</td>
+<td>The Bambora receipt number generated for this transaction</td>
 <td style="text-align: center">Yes</td>
 </tr>
 <tr>
-<td><strong>reference</strong></td>
-<td>String</td>
-<td>Reference used by some acquirers ex. Evry</td>
+<td><strong>DeclinedCode</strong></td>
+<td>Alpha/Num</td>
+<td>Declined code interprets the error message. If result = 0, then this will be the reason for the declined transaction as an error code. If result = 1, then this will be blank
+</td>
 <td style="text-align: center">Yes</td>
 </tr>
 <tr>
-<td><strong>amount</strong></td>
-<td>Number</td>
-<td>The amount to be paid in minor units</td>
+<td><strong>DeclinedMessage	</strong></td>
+<td>Alpha/Num</td>
+<td>Reason message for declined. If result = 0, then this will be the textual description of the error. If result = 1, then this will be blank</td>
 <td style="text-align: center">Yes</td>
 </tr>
 <tr>
-<td><strong>currency</strong></td>
-<td>String</td>
-<td>Currency code as ISO-4217. Ex. DKK, SEK</td>
+<td><strong>SST</strong></td>
+<td>Alpha/Num</td>
+<td>The Secure Session Token</td>
 <td style="text-align: center">Yes</td>
 </tr>
 <tr>
-<td><strong>date</strong></td>
-<td>Number</td>
-<td>In the format yyyyMMdd</td>
+<td><strong>SessionKey</strong></td>
+<td>Alpha/Num</td>
+<td>The session key submitted by you only to Bambora in the session initiation request</td>
 <td style="text-align: center">Yes</td>
 </tr>
 <tr>
-<td><strong>time</strong></td>
-<td>Number</td>
-<td>In the format HHmm</td>
+<td><strong>SessionId</strong></td>
+<td>Alpha/Num</td>
+<td>Merchant unique session identifier</td>
 <td style="text-align: center">Yes</td>
 </tr>
 <tr>
-<td><strong>feeid</strong></td>
-<td>Number</td>
-<td>The agreement and payment type used in the transaction</td>
+<td><strong>MaskedCard</strong></td>
+<td>Numeric</td>
+<td>The masked credit card number. This will show first 6 and last 4 digits of card number. E.g. 1234 56** ***4 321</td>
 <td style="text-align: center">Yes</td>
 </tr>
 <tr>
-<td><strong>txnfee</strong></td>
-<td>Number</td>
-<td>The fee amount in minor units</td>
+<td><strong>ExpiryDate</strong></td>
+<td>Alpha/Num</td>
+<td>The credit card expiry date. Format: MM/YY</td>
 <td style="text-align: center">Yes</td>
 </tr>
 <tr>
-<td><strong>paymenttype</strong></td>
-<td>Number</td>
-<td>Ex. Visa, MasterCard, Invoice</td>
-<td style="text-align: center">Yes</td>
-</tr>
-<tr>
-<td><strong>cardno</strong></td>
-<td>String</td>
-<td>Card number</td>
+<td><strong>CardHolderName</strong></td>
+<td>Alpha/Num</td>
+<td>The card holder name (if captured)</td>
 <td style="text-align: center">No</td>
 </tr>
 <tr>
-<td><strong>expmonth</strong></td>
-<td>Number</td>
-<td>Expire month 1-12. Only present when the payment created a subscription</td>
+<td><strong>CardType</strong></td>
+<td>Alpha/Num</td>
+<td>E.g. MasterCard, Visa</td>
+<td style="text-align: center">Yes</td>
+</tr>
+<tr>
+<td><strong>CardSubType</strong></td>
+<td>Alpha/Num</td>
+<td>A value can be passed back giving further details on the card. This field is only returned if you have the CardSubType functionality enabled. Please see section Card SubType Recongition for further information</td>
 <td style="text-align: center">No</td>
 </tr>
 <tr>
-<td><strong>expyear</strong></td>
-<td>Number</td>
-<td>Expire year 0-99. Only present when the payment created a subscription</td>
+<td><strong>TxDateTime</strong></td>
+<td>Alpha/Num</td>
+<td>The transaction date/time. Format: YYYY-MM-DD HH:MM:SS E.g. 2017-01-20 18:32:30 </td>
+<td style="text-align: center">Yes</td>
+</tr>
+<tr>
+<td><strong>CustNumber</strong></td>
+<td>Alpha/Num</td>
+<td>An additional referencor the transaction sent by you for reporting purposes</td>
 <td style="text-align: center">No</td>
 </tr>
 <tr>
-<td><strong>subscriptionid</strong></td>
-<td>Number</td>
-<td>Only present when the payment created a subscription</td>
+<td><strong>CustRef</strong></td>
+<td>Alpha/Num</td>
+<td>Merchant Reference for the transaction.</td>
 <td style="text-align: center">No</td>
 </tr>
 <tr>
-<td><strong>eci</strong></td>
-<td>String</td>
-<td>Electronic Commerce Indicator</td>
+<td><strong>Amount</strong></td>
+<td>Numeric</td>
+<td>Transaction amount in cent value e.g. $55.00 = 5500. 
+This is the originally submitted amount and does not include any surcharge amount that may have been applied by Bambora</td>
+<td style="text-align: center">Yes</td>
+</tr>
+<tr>
+<td><strong>Surcharge</strong></td>
+<td>Numeric</td>
+<td>Surcharge amount applied to the transaction in cent value. This is only populated if surcharging is enabled on your account</td>
 <td style="text-align: center">No</td>
 </tr>
 <tr>
-<td><strong>hash</strong></td>
-<td>String</td>
-<td>The hashed value of all parameters plus the MD5 key</td>
+<td><strong>Totalamount</strong></td>
+<td>Numeric</td>
+<td>Transcation amount plus surcharge amount applied to the transaction in cent value. This is only populated if surcharging is enabled on your account</td>
+<td style="text-align: center">No</td>
+</tr>
+<tr>
+<td><strong>SettlementDate</strong></td>
+<td>Alpha/Num</td>
+<td>The settlement date of the transaction returned in the following format YYYY-MM-DD</td>
+<td style="text-align: center">Yes</td>
+</tr>
+<tr>
+<td><strong>Reference1</strong></td>
+<td>Alpha/Num</td>
+<td>Additional optional reference submitted by you in the transaction request</td>
+<td style="text-align: center">No</td>
+</tr>
+<tr>
+<td><strong>Reference2</strong></td>
+<td>Alpha/Num</td>
+<td>Additional optional reference submitted by you in the transaction request</td>
+<td style="text-align: center">No</td>
+</tr>
+<tr>
+<td><strong>Reference3</strong></td>
+<td>Alpha/Num</td>
+<td>Additional optional reference submitted by you in the transaction request</td>
+<td style="text-align: center">No</td>
+</tr>
+<tr>
+<td><strong>Reference4</strong></td>
+<td>Alpha/Num</td>
+<td>Additional optional reference submitted by you in the transaction request</td>
+<td style="text-align: center">No</td>
+</tr>
+<tr>
+<td><strong>Reference5</strong></td>
+<td>Alpha/Num</td>
+<td>Additional optional reference submitted by you in the transaction request</td>
+<td style="text-align: center">No</td>
+</tr>
+</tbody></table>
+
+### 2st Response Post to UserURL 
+
+<table class="table"><thead>
+<tr>
+<th>Parameter</th>
+<th>Format</th>
+<th>Description</th>
+<th style="text-align: center">Always returned</th>
+</tr>
+</thead><tbody>
+<tr>
+<td><strong>SessionId</strong></td>
+<td>Alpha/Num</td>
+<td>Merchant’s unique session identifier. Defined by the merchant in the session initiation request</td>
+<td style="text-align: center">Yes</td>
+</tr>
+<tr>
+<td><strong>SST</strong></td>
+<td>Alpha/Num</td>
+<td>The Secure Session Token. Provided by Bambora in the session initiation response</td>
 <td style="text-align: center">Yes</td>
 </tr>
 </tbody></table>
