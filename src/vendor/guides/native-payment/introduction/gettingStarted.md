@@ -16,9 +16,9 @@ Bambora Native Payment is available in all of Europe. If you live in one of the 
 
 If you live in a European country that is not listed above, then please contact us by sending an email to [sales.ecom@bambora.com](mailto:sales.ecom@bambora.com).
 
-## How to use Native Payment
+## How to use Mobile SDK Payment
 
-We offer detailed guides for adding Native Payment to your app:
+We offer detailed guides for adding Mobile SDK Payment to your app:
 
 * [iOS SDK guide](../ios/introduction)
 * [Android SDK guide](../android/introduction)
