@@ -1,6 +1,6 @@
-# Native Payment
+# Mobile SDK Payment
 
-Accept payments in your mobile app with Bambora Native Payment for iOS and Android.
+Bambora Mobile SDK allows you to accept payments in your mobile app for iOS and Android.
 
 ## How to sign up
 
